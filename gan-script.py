@@ -9,8 +9,6 @@ at https://github.com/jonbruner/generative-adversarial-networks.
 This script requires TensorFlow and its dependencies in order to run. Please see
 the readme for guidance on installing TensorFlow.
 
-This script won't print summary statistics in the terminal during training;
-track progress and see sample images in TensorBoard.
 """
 
 import tensorflow as tf
@@ -146,10 +144,12 @@ tf.summary.image('Generated_images', images_for_tensorboard, 5)
 merged = tf.summary.merge_all()
 logdir = "tensorboard/" + datetime.datetime.now().strftime("%Y%m%d-%H%M%S") + "/"
 writer = tf.summary.FileWriter(logdir, sess.graph)
+saver = tf.train.Saver()
 
 sess.run(tf.global_variables_initializer())
 
 # Pre-train discriminator
+print "pre-training..."
 for i in range(300):
     z_batch = np.random.normal(0, 1, size=[batch_size, z_dimensions])
     real_image_batch = mnist.train.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
@@ -157,6 +157,7 @@ for i in range(300):
                                            {x_placeholder: real_image_batch, z_placeholder: z_batch})
 
 # Train generator and discriminator together
+print "training..."
 for i in range(100000):
     real_image_batch = mnist.train.next_batch(batch_size)[0].reshape([batch_size, 28, 28, 1])
     z_batch = np.random.normal(0, 1, size=[batch_size, z_dimensions])
@@ -174,3 +175,7 @@ for i in range(100000):
         z_batch = np.random.normal(0, 1, size=[batch_size, z_dimensions])
         summary = sess.run(merged, {z_placeholder: z_batch, x_placeholder: real_image_batch})
         writer.add_summary(summary, i)
+
+    if i % 100 == 0:
+	saver_path = saver.save(sess, "tensorboard/model.ckpt")
+	print "iteration:", i, "d_loss_real:", dLossReal, "d_loss_fake:", dLossFake
